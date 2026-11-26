@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Sessions — WebCheck-AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Scan History</div>
+    <h1>Test Sessions</h1>
+  </div>
+  <div class="page-header-actions">
+    <a href="/" class="btn btn-primary">+ New Scan</a>
+  </div>
+</div>
+
+<div class="stats-row" id="sessions-overview" style="display:none">
+  <div class="stat-card">
+    <span class="stat-value" id="ov-total-sessions">0</span>
+    <span class="stat-label">Total Scans</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value" id="ov-total-domains">0</span>
+    <span class="stat-label">Domains</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value" id="ov-total-findings">0</span>
+    <span class="stat-label">Total Findings</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value text-success" id="ov-verified-findings">0</span>
+    <span class="stat-label">AI Verified</span>
+  </div>
+</div>
+
+<div class="card filter-bar">
+  <div class="filter-controls">
+    <input type="search" id="search" class="search-input" placeholder="Search by domain or target URL…">
+    <select id="status-filter" class="filter-select" aria-label="Filter by session status">
+      <option value="all">All Statuses</option>
+      <option value="issues_found">Issues Found</option>
+      <option value="passed">Passed</option>
+      <option value="no_pages_tested">No Pages Tested</option>
+    </select>
+    <button type="button" id="refresh-sessions-btn" class="btn btn-secondary">Refresh</button>
+  </div>
+</div>
+
+<div id="active-jobs-container"></div>
+
+<div id="sessions-container">
+  <div class="spinner" aria-label="Loading sessions"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/sessions.js"></script>
+{% endblock %}

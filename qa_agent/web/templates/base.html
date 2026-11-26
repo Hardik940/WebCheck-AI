@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}WebCheck-AI{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-left">
+        <a class="nav-brand" href="/">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </span>
+          <span class="brand-text">WebCheck<span class="brand-ai">-AI</span></span>
+          <span class="brand-tag">QA Studio</span>
+        </a>
+        <div class="nav-links">
+          <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">New Scan</a>
+          <a href="/sessions" class="nav-link {% if request.path.startswith('/session') or request.path.startswith('/run') %}active{% endif %}">Sessions</a>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div id="nav-ai-status" class="ai-status-pill ai-status-loading" title="Local AI verification status">
+          <span class="status-dot"></span>
+          <span class="status-label">Checking AI…</span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="/static/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

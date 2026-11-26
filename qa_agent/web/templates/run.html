@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Live Scan {{ job_id }} — WebCheck-AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="run-header">
+    <div>
+      <div class="breadcrumb"><a href="/sessions">Sessions</a> / Live Scan</div>
+      <h1>Scan <code class="job-id">{{ job_id }}</code></h1>
+      <div id="run-meta" class="text-muted"></div>
+    </div>
+    <div id="run-header" class="run-header-actions" data-job-id="{{ job_id | e }}">
+      <span id="status-badge" class="badge badge-queued">Queued</span>
+      <button id="stop-btn" class="btn btn-danger" style="display:none">Stop Scan</button>
+    </div>
+  </div>
+</div>
+
+<div id="progress-bar-wrap" class="progress-track" style="display:none" aria-label="Scan in progress">
+  <div id="progress-bar-fill" class="progress-indeterminate"></div>
+</div>
+
+<div class="run-stats card" id="run-stats" style="display:none">
+  <div class="stat">
+    <span class="stat-value" id="stat-pages">0</span>
+    <span class="stat-label">Pages Tested</span>
+  </div>
+  <div class="stat">
+    <span class="stat-value" id="stat-findings">0</span>
+    <span class="stat-label">Findings</span>
+  </div>
+  <div class="stat">
+    <span class="stat-value" id="stat-elapsed">0:00</span>
+    <span class="stat-label">Elapsed</span>
+  </div>
+  <div class="stat stat-url-wrap">
+    <span class="stat-value text-muted stat-url-value" id="stat-url">Initializing…</span>
+    <span class="stat-label">Current Target</span>
+  </div>
+</div>
+
+<div id="live-severity-strip" class="live-severity-strip" style="display:none">
+  <span class="badge badge-critical">Critical: <span id="sev-critical">0</span></span>
+  <span class="badge badge-high">High: <span id="sev-high">0</span></span>
+  <span class="badge badge-medium">Medium: <span id="sev-medium">0</span></span>
+  <span class="badge badge-low">Low: <span id="sev-low">0</span></span>
+  <span class="badge badge-info">Info: <span id="sev-info">0</span></span>
+</div>
+
+<div id="complete-banner" class="alert alert-success" style="display:none">
+  <span>Scan complete and findings verified.</span>
+  <a id="session-link" class="btn btn-primary small" href="#">Open Full Dashboard →</a>
+</div>
+<div id="error-banner" class="alert alert-error" style="display:none" role="alert"></div>
+<div id="stopped-banner" class="alert alert-warning" style="display:none">
+  <span>Scan stopped by user.</span>
+  <span id="stopped-session-link" style="display:none">
+    <a id="stopped-link" class="btn btn-secondary small" href="#">View Partial Results →</a>
+  </span>
+</div>
+
+<div class="card log-card">
+  <div class="log-toolbar">
+    <span class="log-title">Execution Stream</span>
+    <div class="log-filter-group" role="group" aria-label="Log filter">
+      <button type="button" class="btn btn-ghost small log-filter active" data-filter="all">All</button>
+      <button type="button" class="btn btn-ghost small log-filter" data-filter="finding">Findings</button>
+      <button type="button" class="btn btn-ghost small log-filter" data-filter="error">Errors</button>
+    </div>
+    <label class="check-label small">
+      <input type="checkbox" id="autoscroll" checked> Auto-scroll
+    </label>
+    <button type="button" class="btn btn-ghost small" id="clear-log-btn">Clear</button>
+  </div>
+  <div id="log" class="log"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/run.js"></script>
+{% endblock %}

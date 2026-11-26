@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+{% block title %}Session {{ session.session_id }} — WebCheck-AI{% endblock %}
+
+{% block content %}
+{% set vs = session.verification_summary or {} %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="/sessions">Sessions</a> / {{ domain }}</div>
+    <div class="title-with-badges">
+      <h1>Session <code class="job-id">{{ session.session_id }}</code></h1>
+      <span class="badge badge-status-{{ session.status }}">{{ session.status | replace('_', ' ') }}</span>
+      {% if session.config_summary and session.config_summary.get('llm_provider') %}
+      <span class="badge badge-provider">
+        AI: {{ session.config_summary.get('llm_provider') }}{% if session.config_summary.get('ai_model') %} / {{
+        session.config_summary.get('ai_model') }}{% endif %}
+      </span>
+      {% endif %}
+    </div>
+    <p class="text-muted">{{ session.start_time }}</p>
+  </div>
+  <div class="page-header-actions">
+    <a href="/" id="rerun-btn" class="btn btn-secondary">Re-run Config</a>
+    <a href="/" class="btn btn-primary">+ New Scan</a>
+  </div>
+</div>
+
+<!-- Summary KPIs -->
+<div class="stats-row">
+  <div class="stat-card">
+    <span class="stat-value">{{ session.pages_tested }}</span>
+    <span class="stat-label">Pages Tested</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ session.total_findings }}</span>
+    <span class="stat-label">Total Findings</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ session.unique_findings }}</span>
+    <span class="stat-label">Unique Issues</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value text-success">{{ vs.get('verified', 0) }}</span>
+    <span class="stat-label">AI Verified</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value text-warning">{{ vs.get('needs_review', 0) }}</span>
+    <span class="stat-label">Needs Review</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value">{{ vs.get('average_confidence') if vs.get('average_confidence') is not none else '—' }}{%
+      if vs.get('average_confidence') is not none %}%{% endif %}</span>
+    <span class="stat-label">Avg Confidence</span>
+  </div>
+  {% if session.duration_seconds is not none %}
+  <div class="stat-card">
+    <span class="stat-value">
+      {% set d = session.duration_seconds | int %}
+      {% if d < 60 %}{{ d }}s{% else %}{{ d // 60 }}m {{ d % 60 }}s{% endif %} </span>
+        <span class="stat-label">Duration</span>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Severity & Verification Breakdown -->
+{% if session.findings_by_severity or session.findings %}
+<div class="breakdown-grid">
+  {% if session.findings_by_severity %}
+  <div class="card severity-breakdown">
+    <h2>Severity Breakdown</h2>
+    <div class="severity-bars">
+      {% for sev in ['critical', 'high', 'medium', 'low', 'info'] %}
+      {% set count = session.findings_by_severity.get(sev, 0) %}
+      {% if count > 0 %}
+      <button type="button" class="severity-bar-row severity-filter-btn" data-severity="{{ sev }}"
+        title="Filter by {{ sev }}">
+        <span class="badge badge-{{ sev }}">{{ sev }}</span>
+        <div class="severity-bar">
+          <div class="severity-bar-fill badge-{{ sev }}"
+            style="width: {{ (count / session.total_findings * 100) | int }}%"></div>
+        </div>
+        <span class="severity-count">{{ count }}</span>
+      </button>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card verification-breakdown">
+    <h2>AI Verification Summary</h2>
+    <div class="verification-pills-grid">
+      <div class="v-metric">
+        <span class="badge badge-v-verified">Verified</span>
+        <strong>{{ vs.get('verified', 0) }}</strong>
+      </div>
+      <div class="v-metric">
+        <span class="badge badge-v-needs_review">Needs Review</span>
+        <strong>{{ vs.get('needs_review', 0) }}</strong>
+      </div>
+      <div class="v-metric">
+        <span class="badge badge-v-likely_false_positive">Likely False Positive</span>
+        <strong>{{ vs.get('likely_false_positive', 0) }}</strong>
+      </div>
+    </div>
+    {% if vs.get('methods') %}
+    <div class="method-tags">
+      <span class="text-muted" style="font-size:0.8rem">Methods used:</span>
+      {% for method, mcount in vs.get('methods', {}).items() %}
+      <span class="source-pill">{{ method | replace('_', ' ') }} ({{ mcount }})</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- AI Executive Summary -->
+{% if session.ai_summary %}
+<div class="card ai-summary-card">
+  <div class="section-head-row">
+    <h2>AI Executive Summary</h2>
+    <span class="badge badge-provider">LLM Analysis</span>
+  </div>
+  <p class="ai-exec-text">{{ session.ai_summary.executive_summary }}</p>
+
+  {% if session.ai_summary.priority_recommendations %}
+  <div class="ai-subblock">
+    <h3>Priority Recommendations</h3>
+    <ol class="ai-list">
+      {% for rec in session.ai_summary.priority_recommendations %}
+      <li>{{ rec }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+  {% if session.ai_summary.root_cause_clusters %}
+  <div class="ai-subblock">
+    <h3>Root Cause Clusters</h3>
+    <div class="cluster-grid">
+      {% for cluster in session.ai_summary.root_cause_clusters %}
+      <div class="cluster-card">
+        <strong>{{ cluster.label }}</strong>
+        <p class="text-muted">{{ cluster.root_cause }}</p>
+        <p><strong>Fix:</strong> {{ cluster.suggested_fix }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if session.ai_summary.false_positive_candidates %}
+  <div class="ai-subblock">
+    <h3>Possible False Positives</h3>
+    <ul class="ai-list">
+      {% for fp in session.ai_summary.false_positive_candidates %}
+      <li>{{ fp }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Plan Warnings -->
+{% if session.plan_warnings %}
+<div class="alert alert-warning">
+  <strong>Test Reliability Warnings:</strong>
+  <ul style="margin:0.4rem 0 0 1.25rem">
+    {% for w in session.plan_warnings %}
+    <li>{{ w }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Reports -->
+{% if session.reports %}
+<div class="card">
+  <h2>Export Reports</h2>
+  <div class="report-links">
+    {% for fmt, url in session.reports.items() %}
+    <a href="{{ url }}" target="_blank" class="report-link">
+      <span class="report-icon">{% if fmt == 'markdown' %}MD{% elif fmt == 'json' %}{ }{% elif fmt == 'pdf' %}PDF{%
+        endif %}</span>
+      {{ fmt | upper }} Report
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Findings Explorer -->
+{% if session.findings %}
+<div class="card">
+  <div class="findings-header-row">
+    <div>
+      <h2>Findings &amp; Vulnerabilities</h2>
+      <span id="findings-count-label" class="text-muted" style="font-size:0.85rem">
+        Showing {{ session.findings | length }} of {{ session.findings | length }} findings
+      </span>
+    </div>
+    <div class="findings-actions">
+      <button type="button" id="toggle-all-btn" class="btn btn-ghost small">Expand All</button>
+    </div>
+  </div>
+
+  <!-- Search & Filters -->
+  <div class="findings-toolbar">
+    <input type="search" id="finding-search" class="search-input"
+      placeholder="Search title, URL, selector, AI explanation…">
+    <select id="filter-severity" class="filter-select" aria-label="Filter by severity">
+      <option value="all">All Severities</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+      <option value="info">Info</option>
+    </select>
+    <select id="filter-verification" class="filter-select" aria-label="Filter by verification status">
+      <option value="all">All Verification</option>
+      <option value="verified">Verified</option>
+      <option value="needs_review">Needs Review</option>
+      <option value="likely_false_positive">Likely False Positive</option>
+    </select>
+    <select id="filter-category" class="filter-select" aria-label="Filter by category">
+      <option value="all">All Categories</option>
+      {% for cat in session.findings | map(attribute='category') | unique | sort %}
+      <option value="{{ cat }}">{{ cat | replace('_', ' ') | title }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" id="reset-finding-filters" class="btn btn-ghost small">Clear</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="findings-table">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Verification</th>
+          <th>Confidence</th>
+          <th>Finding &amp; AI Explanation</th>
+          <th>Category</th>
+          <th>URL</th>
+        </tr>
+      </thead>
+      <tbody id="findings-tbody">
+        {% for f in session.findings %}
+        {% set v = (f.metadata or {}).get('verification', {}) %}
+        {% set v_status = v.get('status', 'needs_review') %}
+        {% set v_conf = v.get('confidence_score', 50) %}
+        {% set v_source = v.get('issue_source', 'unknown') %}
+        {% set v_method = v.get('verification_method', 'rule_based') %}
+        {% set v_model = v.get('model') %}
+        {% set v_reason = v.get('reason', '') %}
+        {% set v_err = v.get('llm_error') %}
+        <tr class="finding-row" tabindex="0" data-severity="{{ f.severity }}" data-verification="{{ v_status }}"
+          data-category="{{ f.category }}" data-source="{{ v_source }}"
+          data-search="{{ (f.title ~ ' ' ~ f.description ~ ' ' ~ f.url ~ ' ' ~ (f.element_selector or '') ~ ' ' ~ v_reason ~ ' ' ~ v_source) | lower | e }}">
+          <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+          <td>
+            <span class="badge badge-v-{{ v_status }}">{{ v_status | replace('_', ' ') }}</span>
+          </td>
+          <td>
+            <div class="confidence-cell" title="{{ v_conf }}% confidence via {{ v_method }}">
+              <span class="confidence-val">{{ v_conf }}%</span>
+              <div class="confidence-bar">
+                <div class="confidence-fill conf-{{ 'high' if v_conf >= 75 else ('mid' if v_conf >= 50 else 'low') }}"
+                  style="width: {{ v_conf }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="finding-title-row">
+              <span class="row-chevron" aria-hidden="true">▸</span>
+              <span class="finding-title">{{ f.title }}</span>
+            </div>
+            {% if v_reason %}
+            <div class="finding-ai-preview"><span class="ai-inline-tag">AI</span> {{ v_reason }}</div>
+            {% endif %}
+            <div class="finding-detail" style="display:none">
+              <div class="ai-explanation-box">
+                <div class="ai-box-header">
+                  <strong>Verification Assessment</strong>
+                  <span class="source-pill">{{ v_method | replace('_', ' ') }}{% if v_model %} · {{ v_model }}{% endif
+                    %}</span>
+                  <span class="source-pill">Source: {{ v_source | replace('_', ' ') }}</span>
+                </div>
+                <p>{{ v_reason or 'No explanation recorded.' }}</p>
+                {% if v_err %}
+                <p class="text-warning" style="font-size:0.8rem">Fallback note: {{ v_err }}</p>
+                {% endif %}
+              </div>
+              <p><strong>Description:</strong> {{ f.description }}</p>
+              {% if f.expected_behavior %}<p><strong>Expected:</strong> {{ f.expected_behavior }}</p>{% endif %}
+              {% if f.actual_behavior %}<p><strong>Actual:</strong> {{ f.actual_behavior }}</p>{% endif %}
+              {% if f.element_selector %}<p><strong>Selector:</strong> <code>{{ f.element_selector }}</code></p>{% endif
+              %}
+              {% if f.raw_error %}<p><strong>Raw Error:</strong> <code>{{ f.raw_error[:300] }}</code></p>{% endif %}
+              {% if f.steps_to_reproduce %}<p><strong>Steps:</strong> {{ f.steps_to_reproduce | join(' → ') }}</p>{%
+              endif %}
+              {% if f.affected_urls %}
+              <p><strong>Affected URLs ({{ f.affected_urls | length }}):</strong></p>
+              <ul>{% for u in f.affected_urls %}<li><code>{{ u }}</code></li>{% endfor %}</ul>
+              {% endif %}
+              {% if f.screenshot_path %}
+              <img src="/files/{{ f.screenshot_path }}" class="finding-screenshot" alt="Screenshot for {{ f.title }}"
+                loading="lazy">
+              {% endif %}
+            </div>
+          </td>
+          <td class="text-muted">
+            <div>{{ f.category | replace('_', ' ') | title }}</div>
+            <div class="source-pill" style="margin-top:0.25rem">{{ v_source | replace('_', ' ') }}</div>
+          </td>
+          <td class="text-muted url-cell">{{ f.url }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div id="findings-empty-filter" class="empty-state" style="display:none">
+      No findings match the active search or filters.
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <p class="empty-state">No findings recorded for this session.</p>
+</div>
+{% endif %}
+
+<!-- Pages Tested -->
+{% if session.pages %}
+<div class="card">
+  <h2>Pages Tested ({{ session.pages | length }})</h2>
+  <div class="table-wrapper">
+    <table class="findings-table pages-table">
+      <thead>
+        <tr>
+          <th>Page</th>
+          <th>Load Time</th>
+          <th>Interactive</th>
+          <th>Forms</th>
+          <th>Findings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in session.pages %}
+        <tr>
+          <td>
+            <div><strong>{{ p.title or 'Untitled' }}</strong></div>
+            <div class="url-cell">{{ p.url }}</div>
+          </td>
+          <td class="text-muted">{{ p.load_time_ms | round(0) | int }} ms</td>
+          <td class="text-muted">{{ p.interactive_elements }}</td>
+          <td class="text-muted">{{ p.forms_count }}</td>
+          <td>
+            {% if p.findings_count > 0 %}
+            <span class="badge badge-high">{{ p.findings_count }}</span>
+            {% else %}
+            <span class="badge badge-completed">0</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Screenshots gallery -->
+{% if session.screenshots %}
+<div class="card">
+  <h2>Screenshots ({{ session.screenshots | length }})</h2>
+  <div class="screenshot-gallery">
+    {% for shot in session.screenshots %}
+    <a href="{{ shot }}" target="_blank" class="screenshot-thumb">
+      <img src="{{ shot }}" alt="Screenshot" loading="lazy">
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Recording -->
+{% if session.recording %}
+<div class="card">
+  <h2>Session Recording</h2>
+  <video controls class="session-recording" preload="metadata">
+    <source src="{{ session.recording }}">
+    Your browser does not support video playback.
+  </video>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script type="application/json" id="session-config-data">{{ session.config_summary | tojson }}</script>
+<script src="/static/session.js"></script>
+{% endblock %}
