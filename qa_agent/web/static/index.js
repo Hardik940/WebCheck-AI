@@ -138,6 +138,14 @@ document.querySelectorAll('input[name="mode"]').forEach(radio => {
 
   window.addEventListener('webcheck:ai-status', (e) => {
     aiStatus = e.detail;
+    const providerSel = document.getElementById('llm_provider');
+    if (providerSel && !aiStatus.ollama?.available && providerSel.value === 'ollama') {
+      if (aiStatus.providers?.openai?.configured) {
+        providerSel.value = 'openai';
+      } else if (aiStatus.providers?.anthropic?.configured) {
+        providerSel.value = 'anthropic';
+      }
+    }
     updateLLMOptions();
   });
 

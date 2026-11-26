@@ -253,6 +253,16 @@ curl http://127.0.0.1:5000/api/sessions?limit=10
 
 → [Full API reference](https://github.com/billrichards/qa-agent/blob/main/docs/web-api.md) — all endpoints, request body schema, and SSE event types.
 
+### Deploying to Render (Docker)
+
+This repository includes a [`Dockerfile`](Dockerfile) and [`render.yaml`](render.yaml) Blueprint configured for Playwright Chromium on Render:
+
+- **Runtime**: `docker` (installs `.[web]`, `gunicorn`, and `playwright install --with-deps chromium`)
+- **Start command**: `gunicorn --workers 1 --threads 8 --timeout 180 --bind 0.0.0.0:$PORT qa_agent.web.server:app` (single worker keeps in-memory job state and rate limiters consistent)
+- **Health check**: `/healthz`
+- **AI in the cloud**: Local Ollama on your laptop is not reachable from Render; set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in Render Environment Variables for cloud LLM verification/summaries, or omit them to use the built-in safe rule-based fallback.
+- **Persistence**: On Render Free tier, scan reports/screenshots live on an ephemeral container filesystem and reset on redeploy or sleep. For persistent scan history, use a paid Render plan with a Persistent Disk mounted (e.g. `/data/qa-agent-output`) and set `QA_AGENT_OUTPUT_DIR=/data/qa-agent-output`.
+
 ---
 
 ## CLI Reference

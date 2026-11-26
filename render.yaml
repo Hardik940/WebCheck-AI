@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: webcheck-ai
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /healthz
+    envVars:
+      - key: QA_AGENT_JOB_POOL_SIZE
+        value: "2"
+      - key: QA_AGENT_RATE_LIMIT
+        value: "3.0"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OLLAMA_HOST
+        sync: false

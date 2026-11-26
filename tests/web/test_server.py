@@ -661,6 +661,11 @@ class TestApiServerConfig:
 
 
 class TestApiAIStatusAndSessionView:
+    def test_healthz_endpoint(self, client):
+        resp = client.get("/healthz")
+        assert resp.status_code == 200
+        assert resp.get_json() == {"status": "ok"}
+
     def test_ai_status_endpoint(self, client):
         with patch("qa_agent.web.server.get_ollama_status", return_value={
             "available": True,

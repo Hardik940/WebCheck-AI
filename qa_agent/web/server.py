@@ -30,7 +30,7 @@ from ..llm_client import DEFAULT_MODELS, LLMProvider, get_ollama_status, has_api
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 _HERE = Path(__file__).resolve().parent      # qa_agent/web/
-OUTPUT_DIR = Path.cwd() / "qa-agent-output"
+OUTPUT_DIR = Path(os.environ.get("QA_AGENT_OUTPUT_DIR") or (Path.cwd() / "qa-agent-output"))
 
 # ── Flask app ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder=str(_HERE / "templates"), static_folder=str(_HERE / "static"))
@@ -249,6 +249,12 @@ def _submit_job(job_id: str, config: TestConfig) -> None:
 
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
+
+@app.route("/healthz")
+def healthz():
+    """Lightweight liveness check for container orchestrators (e.g. Render)."""
+    return jsonify({"status": "ok"}), 200
+
 
 @app.route("/")
 def index():
@@ -885,9 +891,11 @@ def serve_web(host: str = "127.0.0.1", port: int = 5000, debug: bool = False) ->
 def serve_web_cli() -> None:
     """Entry point for `qa-agent web` subcommand."""
     import argparse
+    default_port = int(os.environ.get("PORT", "5000"))
+    default_host = os.environ.get("HOST", "0.0.0.0" if "PORT" in os.environ else "127.0.0.1")
     parser = argparse.ArgumentParser(description="QA Agent Web Interface")
-    parser.add_argument("--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=5000, help="Port to listen on (default: 5000)")
+    parser.add_argument("--host", default=default_host, help="Host to bind (default: 127.0.0.1, or 0.0.0.0 when PORT is set)")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to listen on (default: $PORT or 5000)")
     parser.add_argument("--debug", action="store_true", help="Enable Flask debug mode")
     args = parser.parse_args()
     serve_web(host=args.host, port=args.port, debug=args.debug)

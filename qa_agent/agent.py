@@ -3,6 +3,7 @@
 import copy
 import os
 import re
+import sys
 import threading
 import time
 import uuid
@@ -306,6 +307,12 @@ class QAAgent:
 
     def _launch_browser(self, playwright: Playwright) -> Browser:
         """Launch a Chromium browser with the configured options."""
+        launch_args: list[str] = []
+        if sys.platform.startswith("linux"):
+            # Prevent /dev/shm and sandbox crashes inside containerized Linux hosts (e.g. Render)
+            launch_args.extend(["--disable-dev-shm-usage", "--no-sandbox"])
+        if launch_args:
+            return playwright.chromium.launch(headless=self.config.headless, args=launch_args)
         return playwright.chromium.launch(headless=self.config.headless)
 
     def _new_context_page(self, browser: Browser, storage_state=None) -> tuple[BrowserContext, Page]:
