@@ -14,6 +14,7 @@ from playwright.sync_api import Browser, BrowserContext, Page, Playwright, sync_
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from .concurrency import Frontier, PageIndexer
+from .finding_verifier import apply_verification
 from .config import OutputFormat, TestConfig, TestMode
 from .models import Finding, FindingCategory, PageAnalysis, Severity, TestPlan, TestSession
 from .rate_limiter import HostRateLimiter
@@ -757,6 +758,7 @@ class QAAgent:
                     if not finding.screenshot_path:
                         finding.screenshot_path = screenshot_path
 
+        all_findings = apply_verification(all_findings)
         page_analysis.findings = all_findings
         self._add_page_analysis(page_analysis)
 
